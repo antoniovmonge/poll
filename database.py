@@ -28,6 +28,17 @@ SELECT * FROM polls
 JOIN options ON polls.id = options.poll_id
 WHERE polls.id = %s;
 """
+SELECT_POLL_VOTE_DETAILS = '''
+SELECT
+    options.id,
+    options.option_text,
+    COUNT(votes.option_id) AS vote_count,
+    COUNT(votes.option_id) / SUM(COUNT(votes.option_id)) OVER() * 100.0 AS vote_percentage
+FROM options
+LEFT JOIN votes ON options.id = votes.option_id
+WHERE options.poll_id = %s
+GROUP BY options.id;
+'''
 SELECT_LATEST_POLL = '''
 SELECT * FROM polls
 JOIN options ON polls.id = options.poll_id
@@ -73,7 +84,8 @@ def get_poll_details(connection, poll_id):
 def get_poll_and_vote_results(connection, poll_id):
     with connection:
         with connection.cursor() as cursor:
-            pass
+            cursor.execute(SELECT_POLL_VOTE_DETAILS, (poll_id,))
+            return cursor.fetchall()
 
 
 def get_random_poll_vote(connection, option_id):
